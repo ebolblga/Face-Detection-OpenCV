@@ -27,7 +27,7 @@ namespace AI_Lab1._3
                     if (ofd.ShowDialog() == DialogResult.OK)
                     {
                         var img = new Image<Bgr, byte>(ofd.FileName);
-                        this.pictureBox1.Image = img.ToBitmap();
+                        pictureBox1.Image = img.ToBitmap();
 
                         Bitmap bitmap = new Bitmap(this.pictureBox1.Image);
                         Image<Bgr, byte> grayImage = bitmap.ToImage<Bgr, byte>();
@@ -57,7 +57,7 @@ namespace AI_Lab1._3
                             }
                         }
 
-                        this.pictureBox1.Image = bitmap;
+                        pictureBox1.Image = bitmap;
                     }
                 }
             }
