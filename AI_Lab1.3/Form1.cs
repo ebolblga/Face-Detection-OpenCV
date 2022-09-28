@@ -34,7 +34,7 @@ namespace AI_Lab1._3
                         Bitmap bitmap = new Bitmap(this.pictureBox1.Image);
                         Image<Bgr, byte> grayImage = bitmap.ToImage<Bgr, byte>();
 
-                        Rectangle[] faces = FaceClassifier.DetectMultiScale(grayImage, 1.2, 1);
+                        Rectangle[] faces = FaceClassifier.DetectMultiScale(grayImage, 1.4, 0);
                         foreach (Rectangle face in faces)
                         {
                             using (Graphics g = Graphics.FromImage(bitmap))
