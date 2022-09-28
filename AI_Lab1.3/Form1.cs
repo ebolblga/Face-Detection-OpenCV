@@ -1,6 +1,7 @@
 namespace AI_Lab1._3
 {
-    using DirectShowLib;
+    using AForge.Video;
+    using AForge.Video.DirectShow;
     using Emgu.CV;
     using Emgu.CV.Structure;
 
@@ -8,10 +9,10 @@ namespace AI_Lab1._3
     {
         private static readonly CascadeClassifier EyeClassifier = new CascadeClassifier("haarcascade_eye.xml");
         private static readonly CascadeClassifier FaceClassifier = new CascadeClassifier("haarcascade_frontalface_default.xml");
-        private VideoCapture? capture = null;
-        private DsDevice[]? cams = null;
-        private int selectedCamId = 0;
-        Bitmap vidDetection;
+
+        private Bitmap? vidDetection = null;
+        private FilterInfoCollection camList;
+        private VideoCaptureDevice device;
 
         public Form1()
         {
@@ -32,28 +33,27 @@ namespace AI_Lab1._3
 
                         Bitmap bitmap = new Bitmap(this.pictureBox1.Image);
                         Image<Bgr, byte> grayImage = bitmap.ToImage<Bgr, byte>();
-                        //Image<Bgr, byte> grayImage = new Image<Bgr, byte>(bitmap);
 
-                        Rectangle[] ractangles = FaceClassifier.DetectMultiScale(grayImage, 1.4, 1);
-                        foreach (Rectangle rectangle in ractangles)
+                        Rectangle[] faces = FaceClassifier.DetectMultiScale(grayImage, 1.2, 1);
+                        foreach (Rectangle face in faces)
                         {
                             using (Graphics g = Graphics.FromImage(bitmap))
                             {
-                                using (Pen pen = new Pen(Color.Red, 3))
+                                using (Pen pen = new Pen(Color.Red, 2))
                                 {
-                                    g.DrawRectangle(pen, rectangle);
+                                    g.DrawRectangle(pen, face);
                                 }
                             }
                         }
 
-                        Rectangle[] eyes = EyeClassifier.DetectMultiScale(grayImage, 1.4, 2);
-                        foreach (Rectangle rectangle in eyes)
+                        Rectangle[] eyes = EyeClassifier.DetectMultiScale(grayImage, 1.2, 2);
+                        foreach (Rectangle eye in eyes)
                         {
                             using (Graphics g = Graphics.FromImage(bitmap))
                             {
-                                using (Pen pen = new Pen(Color.Green, 3))
+                                using (Pen pen = new Pen(Color.Green, 2))
                                 {
-                                    g.DrawRectangle(pen, rectangle);
+                                    g.DrawRectangle(pen, eye);
                                 }
                             }
                         }
@@ -71,20 +71,24 @@ namespace AI_Lab1._3
         // Loads available cameras
         private void Form1_Load(object sender, EventArgs e)
         {
-            cams = DsDevice.GetDevicesOfCat(FilterCategory.VideoInputDevice);
+            //cams = DsDevice.GetDevicesOfCat(FilterCategory.VideoInputDevice);
+            camList = new FilterInfoCollection(FilterCategory.VideoInputDevice);
 
-            foreach (DsDevice device in cams)
+            foreach (FilterInfo device in camList)
             {
-                comboBox1.Items.Add(device);
+                comboBox1.Items.Add(device.Name);
             }
 
-            comboBox1.SelectedIndex = 0;
-        }
+            if (camList.Count >= 2)
+            {
+                comboBox1.SelectedIndex = camList.Count - 1;
+            }
+            else
+            {
+                comboBox1.SelectedIndex = 0;
+            }
 
-        // Selects correct camera index
-        private void comboBox1_SelectedIndexChanged(object sender, EventArgs e)
-        {
-            selectedCamId = comboBox1.SelectedIndex;
+            device = new VideoCaptureDevice();
         }
 
         // Turns on camera
@@ -92,7 +96,11 @@ namespace AI_Lab1._3
         {
             try
             {
-                if (cams.Length == 0)
+                if (camList == null)
+                {
+                    throw new Exception("No available cameras.");
+                }
+                else if (camList.Count == 0)
                 {
                     throw new Exception("No available cameras.");
                 }
@@ -100,15 +108,11 @@ namespace AI_Lab1._3
                 {
                     throw new Exception("Camera is not selected.");
                 }
-                else if (capture != null)
-                {
-                    capture.Start();
-                }
                 else
                 {
-                    capture = new VideoCapture(selectedCamId);
-                    capture.ImageGrabbed += Capture_ImageGrabbed;
-                    capture.Start();
+                    device = new VideoCaptureDevice(camList[comboBox1.SelectedIndex].MonikerString);
+                    device.NewFrame += Capture_ImageGrabbed;
+                    device.Start();
                 }
             }
             catch(Exception ex)
@@ -118,25 +122,22 @@ namespace AI_Lab1._3
         }
 
         // Camera settings
-        private void Capture_ImageGrabbed(object sender, EventArgs e)
+        private void Capture_ImageGrabbed(object sender, NewFrameEventArgs eventArgs)
         {
             try
             {
-                //if (vidDetection  != null)
-                //{
-                //    vidDetection.Dispose();
-                //} 
+                if (pictureBox1.Image != null)
+                {
+                    pictureBox1.Image.Dispose();
+                }
 
-                Mat m = new Mat();
-                capture.Retrieve(m);
-                Bitmap bitmap = m.ToImage<Bgr, byte>().Flip(Emgu.CV.CvEnum.FlipType.Horizontal).AsBitmap();
-                m.Dispose();
-                Image<Bgr, byte> grayImage = bitmap.ToImage<Bgr, byte>();
+                Bitmap frame = (Bitmap)eventArgs.Frame.Clone();
+                Image<Bgr, byte> grayImage = frame.ToImage<Bgr, byte>();
 
                 Rectangle[] faces = FaceClassifier.DetectMultiScale(grayImage, 1.2, 1);
                 foreach (Rectangle face in faces)
                 {
-                    using (Graphics g = Graphics.FromImage(bitmap))
+                    using (Graphics g = Graphics.FromImage(frame))
                     {
                         using (Pen pen = new Pen(Color.Red, 2))
                         {
@@ -148,7 +149,7 @@ namespace AI_Lab1._3
                 Rectangle[] eyes = EyeClassifier.DetectMultiScale(grayImage, 1.2, 2);
                 foreach (Rectangle eye in eyes)
                 {
-                    using (Graphics g = Graphics.FromImage(bitmap))
+                    using (Graphics g = Graphics.FromImage(frame))
                     {
                         using (Pen pen = new Pen(Color.Green, 2))
                         {
@@ -157,10 +158,9 @@ namespace AI_Lab1._3
                     }
                 }
 
-                //vidDetection = new Bitmap(bitmap);
-                //bitmap.Dispose();
-                pictureBox1.Image = new Bitmap(bitmap);
-                bitmap.Dispose();
+                vidDetection = new Bitmap(frame);
+                pictureBox1.Image = vidDetection;
+                frame.Dispose();
             }
             catch (Exception ex)
             {
@@ -171,37 +171,31 @@ namespace AI_Lab1._3
         // Close button
         private void exitToolStripMenuItem_Click(object sender, EventArgs e)
         {
-            if (capture != null)
-            {
-                if (capture.IsOpened)
-                {
-                    capture.Stop();
-                }
-            }
-
+            stopCapera();
             this.Close();
         }
 
         // Stops capturing on close
         private void Form1_FormClosing(object sender, FormClosingEventArgs e)
         {
-            if (capture != null)
-            {
-                if (capture.IsOpened)
-                {
-                    capture.Stop();
-                }
-            }
+            stopCapera();
         }
 
         // Stops capturing
         private void button3_Click(object sender, EventArgs e)
         {
-            if (capture != null)
+            stopCapera();
+        }
+
+        // Function to send stop signal to camera
+        private void stopCapera()
+        {
+            if (device != null)
             {
-                if (capture.IsOpened)
+                if (device.IsRunning)
                 {
-                    capture.Stop();
+                    device.SignalToStop();
+                    device = null;
                 }
             }
         }
