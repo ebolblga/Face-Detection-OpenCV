@@ -11,6 +11,7 @@ namespace AI_Lab1._3
         private VideoCapture? capture = null;
         private DsDevice[]? cams = null;
         private int selectedCamId = 0;
+        Bitmap vidDetection;
 
         public Form1()
         {
@@ -33,7 +34,7 @@ namespace AI_Lab1._3
                         Image<Bgr, byte> grayImage = bitmap.ToImage<Bgr, byte>();
                         //Image<Bgr, byte> grayImage = new Image<Bgr, byte>(bitmap);
 
-                        Rectangle[] ractangles = FaceClassifier.DetectMultiScale(grayImage, 1.4, 0);
+                        Rectangle[] ractangles = FaceClassifier.DetectMultiScale(grayImage, 1.4, 1);
                         foreach (Rectangle rectangle in ractangles)
                         {
                             using (Graphics g = Graphics.FromImage(bitmap))
@@ -45,7 +46,7 @@ namespace AI_Lab1._3
                             }
                         }
 
-                        Rectangle[] eyes = EyeClassifier.DetectMultiScale(grayImage, 1.4, 0);
+                        Rectangle[] eyes = EyeClassifier.DetectMultiScale(grayImage, 1.4, 2);
                         foreach (Rectangle rectangle in eyes)
                         {
                             using (Graphics g = Graphics.FromImage(bitmap))
@@ -72,10 +73,12 @@ namespace AI_Lab1._3
         {
             cams = DsDevice.GetDevicesOfCat(FilterCategory.VideoInputDevice);
 
-            for (int i = 0; i < cams.Length; i++)
+            foreach (DsDevice device in cams)
             {
-                comboBox1.Items.Add(cams[i]);
+                comboBox1.Items.Add(device);
             }
+
+            comboBox1.SelectedIndex = 0;
         }
 
         // Selects correct camera index
@@ -119,13 +122,87 @@ namespace AI_Lab1._3
         {
             try
             {
+                //if (vidDetection  != null)
+                //{
+                //    vidDetection.Dispose();
+                //} 
+
                 Mat m = new Mat();
                 capture.Retrieve(m);
-                pictureBox1.Image = m.ToImage<Bgr, byte>().Flip(Emgu.CV.CvEnum.FlipType.Horizontal).AsBitmap();
+                Bitmap bitmap = m.ToImage<Bgr, byte>().Flip(Emgu.CV.CvEnum.FlipType.Horizontal).AsBitmap();
+                m.Dispose();
+                Image<Bgr, byte> grayImage = bitmap.ToImage<Bgr, byte>();
+
+                Rectangle[] faces = FaceClassifier.DetectMultiScale(grayImage, 1.2, 1);
+                foreach (Rectangle face in faces)
+                {
+                    using (Graphics g = Graphics.FromImage(bitmap))
+                    {
+                        using (Pen pen = new Pen(Color.Red, 2))
+                        {
+                            g.DrawRectangle(pen, face);
+                        }
+                    }
+                }
+
+                Rectangle[] eyes = EyeClassifier.DetectMultiScale(grayImage, 1.2, 2);
+                foreach (Rectangle eye in eyes)
+                {
+                    using (Graphics g = Graphics.FromImage(bitmap))
+                    {
+                        using (Pen pen = new Pen(Color.Green, 2))
+                        {
+                            g.DrawRectangle(pen, eye);
+                        }
+                    }
+                }
+
+                //vidDetection = new Bitmap(bitmap);
+                //bitmap.Dispose();
+                pictureBox1.Image = new Bitmap(bitmap);
+                bitmap.Dispose();
             }
             catch (Exception ex)
             {
                 MessageBox.Show(ex.Message, "Error!", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
+        }
+
+        // Close button
+        private void exitToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            if (capture != null)
+            {
+                if (capture.IsOpened)
+                {
+                    capture.Stop();
+                }
+            }
+
+            this.Close();
+        }
+
+        // Stops capturing on close
+        private void Form1_FormClosing(object sender, FormClosingEventArgs e)
+        {
+            if (capture != null)
+            {
+                if (capture.IsOpened)
+                {
+                    capture.Stop();
+                }
+            }
+        }
+
+        // Stops capturing
+        private void button3_Click(object sender, EventArgs e)
+        {
+            if (capture != null)
+            {
+                if (capture.IsOpened)
+                {
+                    capture.Stop();
+                }
             }
         }
     }
