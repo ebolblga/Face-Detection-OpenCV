@@ -9,8 +9,6 @@ namespace AI_Lab1._3
     {
         private static readonly CascadeClassifier EyeClassifier = new CascadeClassifier("haarcascade_eye.xml");
         private static readonly CascadeClassifier FaceClassifier = new CascadeClassifier("haarcascade_frontalface_default.xml");
-
-        private Bitmap? vidDetection = null;
         private FilterInfoCollection camList;
         private VideoCaptureDevice device;
 
@@ -28,37 +26,24 @@ namespace AI_Lab1._3
                 {
                     if (ofd.ShowDialog() == DialogResult.OK)
                     {
-                        var img = new Image<Bgr, byte>(ofd.FileName);
-                        pictureBox1.Image = img.ToBitmap();
+                        Image<Bgr, byte> inputImage = new Image<Bgr, byte>(ofd.FileName);
+                        Image<Gray, byte> grayImage = inputImage.Convert<Gray, byte>().Clone();
 
-                        Bitmap bitmap = new Bitmap(this.pictureBox1.Image);
-                        Image<Bgr, byte> grayImage = bitmap.ToImage<Bgr, byte>();
-
-                        Rectangle[] faces = FaceClassifier.DetectMultiScale(grayImage, 1.4, 0);
+                        Rectangle[] faces = FaceClassifier.DetectMultiScale(grayImage, 1.05, 3);
                         foreach (Rectangle face in faces)
                         {
-                            using (Graphics g = Graphics.FromImage(bitmap))
-                            {
-                                using (Pen pen = new Pen(Color.Red, 2))
-                                {
-                                    g.DrawRectangle(pen, face);
-                                }
-                            }
+                            inputImage.Draw(face, new Bgr(113, 113, 245), 2);
                         }
 
-                        Rectangle[] eyes = EyeClassifier.DetectMultiScale(grayImage, 1.2, 2);
+                        Rectangle[] eyes = EyeClassifier.DetectMultiScale(grayImage, 1.05, 3);
                         foreach (Rectangle eye in eyes)
                         {
-                            using (Graphics g = Graphics.FromImage(bitmap))
-                            {
-                                using (Pen pen = new Pen(Color.Green, 2))
-                                {
-                                    g.DrawRectangle(pen, eye);
-                                }
-                            }
+                            inputImage.Draw(eye, new Bgr(113, 245, 177), 2);
                         }
 
-                        pictureBox1.Image = bitmap;
+                        pictureBox1.Image = inputImage.AsBitmap();
+                        grayImage.Dispose();
+                        inputImage.Dispose();
                     }
                 }
             }
@@ -126,41 +111,24 @@ namespace AI_Lab1._3
         {
             try
             {
-                if (pictureBox1.Image != null)
-                {
-                    pictureBox1.Image.Dispose();
-                }
-
-                Bitmap frame = (Bitmap)eventArgs.Frame.Clone();
-                Image<Bgr, byte> grayImage = frame.ToImage<Bgr, byte>();
+                Image<Bgr, byte> inputImage = eventArgs.Frame.ToImage<Bgr, byte>();
+                Image<Gray, byte> grayImage = inputImage.Convert<Gray, byte>().Clone();
 
                 Rectangle[] faces = FaceClassifier.DetectMultiScale(grayImage, 1.2, 1);
                 foreach (Rectangle face in faces)
                 {
-                    using (Graphics g = Graphics.FromImage(frame))
-                    {
-                        using (Pen pen = new Pen(Color.Red, 2))
-                        {
-                            g.DrawRectangle(pen, face);
-                        }
-                    }
+                    inputImage.Draw(face, new Bgr(113, 113, 245), 2);
                 }
 
                 Rectangle[] eyes = EyeClassifier.DetectMultiScale(grayImage, 1.2, 2);
                 foreach (Rectangle eye in eyes)
                 {
-                    using (Graphics g = Graphics.FromImage(frame))
-                    {
-                        using (Pen pen = new Pen(Color.Green, 2))
-                        {
-                            g.DrawRectangle(pen, eye);
-                        }
-                    }
+                    inputImage.Draw(eye, new Bgr(113, 245, 177), 2);
                 }
 
-                vidDetection = new Bitmap(frame);
-                pictureBox1.Image = vidDetection;
-                frame.Dispose();
+                pictureBox1.Image = inputImage.ToBitmap();
+                grayImage.Dispose();
+                inputImage.Dispose();
             }
             catch (Exception ex)
             {
