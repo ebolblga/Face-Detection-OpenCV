@@ -1,6 +1,5 @@
 # Face-Detection-OpenCV
 ## Face detection using OpenCV wrapper on C# Windows Forms App (.NET 6.0 Framework)
-Note: program currently has a memory leak, working on fixing it...
 ![image](https://user-images.githubusercontent.com/82185066/192902317-c346af3b-2698-4799-af88-3493616c5e3b.png)
 
 ## Dependencies
