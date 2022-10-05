@@ -1,8 +1,9 @@
-namespace AI_Lab1._3
+﻿namespace AI_Lab1._3
 {
     using AForge.Video;
     using AForge.Video.DirectShow;
     using Emgu.CV;
+    using Emgu.CV.CvEnum;
     using Emgu.CV.Structure;
 
     public partial class Form1 : Form
@@ -33,6 +34,7 @@ namespace AI_Lab1._3
                         foreach (Rectangle face in faces)
                         {
                             inputImage.Draw(face, new Bgr(113, 113, 245), 2);
+                            CvInvoke.PutText(inputImage, "CHMONYA 100%", new Point(face.X + 3, face.Y + 13), FontFace.HersheySimplex, 0.4, new Bgr(Color.Red).MCvScalar);
                         }
 
                         Rectangle[] eyes = EyeClassifier.DetectMultiScale(grayImage, 1.05, 3);
@@ -118,6 +120,7 @@ namespace AI_Lab1._3
                 foreach (Rectangle face in faces)
                 {
                     inputImage.Draw(face, new Bgr(113, 113, 245), 2);
+                    CvInvoke.PutText(inputImage, "CHMONYA 100%", new Point(face.X + 3, face.Y + 13), FontFace.HersheySimplex, 0.4, new Bgr(Color.Red).MCvScalar);
                 }
 
                 Rectangle[] eyes = EyeClassifier.DetectMultiScale(grayImage, 1.2, 2);
